@@ -79,6 +79,15 @@
     color: #27ae60;
     font-size: 16px;
   }
+  .formula-note {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #856404;
+  }
   footer {
     text-align: center;
     margin-top: 30px;
@@ -104,30 +113,28 @@
 </style>
 </head>
 <body>
-
 <h1>Bharat Agrolink Pricing Calculator</h1>
 <div class="calculator">
-  
   <!-- LEFT SIDE - INPUTS -->
   <div class="input-section">
     <div class="section-title">Input Parameters</div>
     
     <label for="nrv">Net Receivable Amount (NRV) ₹</label>
     <input type="number" id="nrv" min="0" step="0.01" value="100" />
-
     <label for="baCommission">B.A Commission (%)</label>
-    <input type="number" id="baCommission" min="0" step="0.01" value="10" />
-
+    <input type="number" id="baCommission" min="0" step="0.01" value="12" />
     <label for="taxClass">GST Tax Class (%)</label>
     <input type="number" id="taxClass" min="0" step="0.01" value="5" />
-
     <label for="gstOnCommission">GST on Commission (%)</label>
     <input type="number" id="gstOnCommission" min="0" step="0.01" value="18" />
-
     <label for="tcsRate">TCS Rate (%)</label>
     <input type="number" id="tcsRate" min="0" step="0.01" value="1" />
+    
+    <div class="formula-note">
+      <strong>Seller Price Formula:</strong><br>
+      S.P. = NRV × (1 + BA Commission/100) * (1 + GST on Commission/100)
+    </div>
   </div>
-
   <!-- RIGHT SIDE - OUTPUTS -->
   <div class="output-section">
     <div class="section-title">Calculated Results</div>
@@ -149,6 +156,10 @@
       <span id="gstCommission">₹ 0.00</span>
     </div>
     <div class="result">
+      Total Commission + GST
+      <span id="totalCommissionGST">₹ 0.00</span>
+    </div>
+    <div class="result">
       TCS Amount
       <span id="tcsAmount">₹ 0.00</span>
     </div>
@@ -157,17 +168,13 @@
       <span id="bankSettlement">₹ 0.00</span>
     </div>
   </div>
-
 </div>
-
 <footer>© 2025 Bharat Agrolink Platform</footer>
-
 <script>
   // Function to format number as currency rupees string
   function formatRupees(amount) {
     return '₹ ' + amount.toFixed(2);
   }
-
   function calculatePricing() {
     // Read input values
     const NRV = parseFloat(document.getElementById('nrv').value) || 0;
@@ -175,41 +182,43 @@
     const Tax_Class = parseFloat(document.getElementById('taxClass').value) || 0;
     const GST_Commission_Rate = parseFloat(document.getElementById('gstOnCommission').value) || 0;
     const TCS_Rate = parseFloat(document.getElementById('tcsRate').value) || 0;
-
-    // Calculate Seller Price (S.P.)
-    const sellerPrice = NRV * (1 + BA_Commission / 100);
-
+    
+    // Calculate Seller Price (S.P.) - IMPROVED FORMULA
+    // S.P. = NRV × (1 + BA Commission/100) * (1 + GST on Commission/100)
+    const sellerPrice = NRV * (1 + BA_Commission / 100) * (1 + GST_Commission_Rate / 100);
+    
     // Calculate Display Price (D.P.)
     const displayPrice = sellerPrice * (1 + Tax_Class / 100);
-
-    // Calculate B.A Commission Amount
+    
+    // Calculate B.A Commission Amount (based on NRV)
     const commissionAmount = NRV * (BA_Commission / 100);
-
+    
     // Calculate GST on Commission
     const gstOnCommission = commissionAmount * (GST_Commission_Rate / 100);
-
-    // Calculate TCS
+    
+    // Calculate Total Commission + GST
+    const totalCommissionGST = commissionAmount + gstOnCommission;
+    
+    // Calculate TCS (based on seller price)
     const tcsAmount = sellerPrice * (TCS_Rate / 100);
-
+    
     // Calculate Bank Settlement Amount (BSA)
     const bankSettlement = NRV - tcsAmount;
-
+    
     // Display results
     document.getElementById('sellerPrice').textContent = formatRupees(sellerPrice);
     document.getElementById('displayPrice').textContent = formatRupees(displayPrice);
     document.getElementById('commissionAmount').textContent = formatRupees(commissionAmount);
     document.getElementById('gstCommission').textContent = formatRupees(gstOnCommission);
+    document.getElementById('totalCommissionGST').textContent = formatRupees(totalCommissionGST);
     document.getElementById('tcsAmount').textContent = formatRupees(tcsAmount);
     document.getElementById('bankSettlement').textContent = formatRupees(bankSettlement);
   }
-
   // Add event listeners on inputs to update calculations live
   const inputs = document.querySelectorAll('input[type="number"]');
   inputs.forEach(input => input.addEventListener('input', calculatePricing));
-
   // Initial calculation on page load
   calculatePricing();
 </script>
-
 </body>
 </html>
