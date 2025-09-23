@@ -63,6 +63,36 @@
     outline: none;
     border-color: #3498db;
   }
+  input[type="number"].error {
+    border-color: #e74c3c !important;
+    background-color: #fdf2f2;
+  }
+  input[type="number"].valid {
+    border-color: #27ae60 !important;
+    background-color: #f2fff2;
+  }
+  .price-range {
+    background: #e8f5e8;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 15px;
+    font-size: 12px;
+    color: #2d5f2d;
+    border-left: 4px solid #27ae60;
+  }
+  .validation-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 12px;
+    border: 1px solid #f5c6cb;
+    display: none;
+  }
+  .validation-error.show {
+    display: block;
+  }
   .result {
     margin-bottom: 15px;
     background: #eaf3fb;
@@ -74,19 +104,52 @@
     justify-content: space-between;
     align-items: center;
   }
+  .result.manual-edit {
+    background: #f8d7da;
+    border: 2px solid #dc3545;
+  }
   .result span {
     font-weight: 700;
     color: #27ae60;
     font-size: 16px;
   }
-  .formula-note {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+  .result input {
+    border: 1px solid #ccc;
+    background: white;
+    font-weight: 700;
+    color: #27ae60;
+    font-size: 16px;
+    text-align: right;
+    width: 120px;
+    padding: 5px 8px;
+    margin: 0;
+    border-radius: 4px;
+  }
+  .result input:focus {
+    outline: 1px solid #3498db;
+    border-color: #3498db;
+  }
+  .alert {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px 15px;
     border-radius: 6px;
-    padding: 12px;
-    margin-top: 20px;
+    margin-bottom: 20px;
     font-size: 14px;
-    color: #856404;
+    border: 1px solid #f5c6cb;
+    display: none;
+  }
+  .alert.show {
+    display: block;
+  }
+  .formula-display {
+    background: #e3f2fd;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #1565c0;
+    border-left: 4px solid #2196f3;
   }
   footer {
     text-align: center;
@@ -113,39 +176,64 @@
 </style>
 </head>
 <body>
+<!--also add on left MRP and MSP to enter NRV as per this range and seller price and should not be greater then MRP and less then MSP-->
 <h1>Bharat Agrolink Pricing Calculator</h1>
 <div class="calculator">
+  
   <!-- LEFT SIDE - INPUTS -->
   <div class="input-section">
     <div class="section-title">Input Parameters</div>
     
+    <label for="mrp">Maximum Retail Price (MRP) ₹</label>
+    <input type="number" id="mrp" min="0" step="0.01" value="" placeholder="Enter MRP" />
+    <div class="validation-error" id="mrpError"></div>
+
+    <label for="msp">Minimum Selling Price (MSP) ₹</label>
+    <input type="number" id="msp" min="0" step="0.01" value="" placeholder="Enter MSP" />
+    <div class="validation-error" id="mspError"></div>
+
+    <div class="price-range" id="priceRange" style="display: none;">
+      💡 Price Range: ₹<span id="rangeMin">0</span> - ₹<span id="rangeMax">0</span>
+    </div>
+    
     <label for="nrv">Net Receivable Amount (NRV) ₹</label>
-    <input type="number" id="nrv" min="0" step="0.01" value="100" />
+    <input type="number" id="nrv" min="0" step="0.01" value="" placeholder="Enter NRV within range" />
+    <div class="validation-error" id="nrvError"></div>
+
     <label for="baCommission">B.A Commission (%)</label>
-    <input type="number" id="baCommission" min="0" step="0.01" value="12" />
+    <input type="number" id="baCommission" min="0" step="0.01" value="10" />
+
     <label for="taxClass">GST Tax Class (%)</label>
     <input type="number" id="taxClass" min="0" step="0.01" value="5" />
+
     <label for="gstOnCommission">GST on Commission (%)</label>
     <input type="number" id="gstOnCommission" min="0" step="0.01" value="18" />
+
     <label for="tcsRate">TCS Rate (%)</label>
     <input type="number" id="tcsRate" min="0" step="0.01" value="1" />
-    
-    <div class="formula-note">
-      <strong>Seller Price Formula:</strong><br>
-      S.P. = NRV × (1 + BA Commission/100) * (1 + GST on Commission/100)
-    </div>
   </div>
+
   <!-- RIGHT SIDE - OUTPUTS -->
   <div class="output-section">
     <div class="section-title">Calculated Results</div>
     
-    <div class="result">
-      Seller Price (S.P.)
-      <span id="sellerPrice">₹ 0.00</span>
+    <div class="formula-display" id="formulaDisplay">
+      Formula: S.P. = NRV × ((100+BA)/100) × ((100+GST)/100)
     </div>
-    <div class="result">
+    
+    <div class="alert" id="manualEditAlert">
+      ⚠️ Now, Prices are editing where NRV based calculation is not implementing
+    </div>
+    
+    <div class="result" id="sellerPriceDiv">
+      Seller Price (S.P.)
+      <input type="number" id="sellerPrice" min="0" step="0.01" />
+    </div>
+    <div class="validation-error" id="sellerPriceError"></div>
+    
+    <div class="result" id="displayPriceDiv">
       Display Price (D.P.)
-      <span id="displayPrice">₹ 0.00</span>
+      <input type="number" id="displayPrice" min="0" step="0.01" />
     </div>
     <div class="result">
       B.A Commission Amount
@@ -156,10 +244,6 @@
       <span id="gstCommission">₹ 0.00</span>
     </div>
     <div class="result">
-      Total Commission + GST
-      <span id="totalCommissionGST">₹ 0.00</span>
-    </div>
-    <div class="result">
       TCS Amount
       <span id="tcsAmount">₹ 0.00</span>
     </div>
@@ -168,57 +252,300 @@
       <span id="bankSettlement">₹ 0.00</span>
     </div>
   </div>
+
 </div>
+
 <footer>© 2025 Bharat Agrolink Platform</footer>
+
 <script>
+  let isManualEdit = false;
+  let isUpdatingPrices = false;
+
   // Function to format number as currency rupees string
   function formatRupees(amount) {
     return '₹ ' + amount.toFixed(2);
   }
-  function calculatePricing() {
-    // Read input values
+
+  function updatePriceRange() {
+    const mrp = parseFloat(document.getElementById('mrp').value) || 0;
+    const msp = parseFloat(document.getElementById('msp').value) || 0;
+    const priceRangeDiv = document.getElementById('priceRange');
+    
+    if (mrp > 0 && msp > 0) {
+      document.getElementById('rangeMin').textContent = msp.toFixed(2);
+      document.getElementById('rangeMax').textContent = mrp.toFixed(2);
+      priceRangeDiv.style.display = 'block';
+    } else {
+      priceRangeDiv.style.display = 'none';
+    }
+  }
+
+  function validatePrices() {
+    const mrp = parseFloat(document.getElementById('mrp').value) || 0;
+    const msp = parseFloat(document.getElementById('msp').value) || 0;
+    const nrv = parseFloat(document.getElementById('nrv').value) || 0;
+    const sellerPrice = parseFloat(document.getElementById('sellerPrice').value) || 0;
+    
+    let isValid = true;
+    
+    // Clear previous errors
+    document.getElementById('mrpError').style.display = 'none';
+    document.getElementById('mspError').style.display = 'none';
+    document.getElementById('nrvError').style.display = 'none';
+    document.getElementById('sellerPriceError').style.display = 'none';
+    
+    // Reset input styles
+    document.getElementById('mrp').classList.remove('error', 'valid');
+    document.getElementById('msp').classList.remove('error', 'valid');
+    document.getElementById('nrv').classList.remove('error', 'valid');
+    document.getElementById('sellerPrice').classList.remove('error', 'valid');
+
+    // Validate MRP and MSP relationship
+    if (mrp > 0 && msp > 0) {
+      if (msp >= mrp) {
+        showError('mspError', 'MSP should be less than MRP');
+        document.getElementById('msp').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('mrp').classList.add('valid');
+        document.getElementById('msp').classList.add('valid');
+      }
+    }
+
+    // Validate NRV within range
+    if (nrv > 0 && mrp > 0 && msp > 0 && msp < mrp) {
+      if (nrv < msp) {
+        showError('nrvError', `NRV (₹${nrv}) should not be less than MSP (₹${msp})`);
+        document.getElementById('nrv').classList.add('error');
+        isValid = false;
+      } else if (nrv > mrp) {
+        showError('nrvError', `NRV (₹${nrv}) should not be greater than MRP (₹${mrp})`);
+        document.getElementById('nrv').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('nrv').classList.add('valid');
+      }
+    }
+
+    // Validate Seller Price within range
+    if (sellerPrice > 0 && mrp > 0 && msp > 0 && msp < mrp) {
+      if (sellerPrice < msp) {
+        showError('sellerPriceError', `Seller Price (₹${sellerPrice.toFixed(2)}) should not be less than MSP (₹${msp})`);
+        document.getElementById('sellerPrice').classList.add('error');
+        isValid = false;
+      } else if (sellerPrice > mrp) {
+        showError('sellerPriceError', `Seller Price (₹${sellerPrice.toFixed(2)}) should not be greater than MRP (₹${mrp})`);
+        document.getElementById('sellerPrice').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('sellerPrice').classList.add('valid');
+      }
+    }
+
+    return isValid;
+  }
+
+  function showError(elementId, message) {
+    const errorDiv = document.getElementById(elementId);
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+
+  function updateFormulaDisplay() {
+    const formulaDiv = document.getElementById('formulaDisplay');
+    if (isManualEdit) {
+      formulaDiv.textContent = "Formula: Manual Edit Mode - D.P. = S.P. × (1 + Tax_Class/100)";
+    } else {
+      formulaDiv.textContent = "Formula: S.P. = NRV × ((100+BA)/100) × ((100+GST)/100)";
+    }
+  }
+
+  function showManualEditAlert() {
+    const alertDiv = document.getElementById('manualEditAlert');
+    const spDiv = document.getElementById('sellerPriceDiv');
+    const dpDiv = document.getElementById('displayPriceDiv');
+    
+    if (isManualEdit) {
+      alertDiv.classList.add('show');
+      spDiv.classList.add('manual-edit');
+      dpDiv.classList.add('manual-edit');
+    } else {
+      alertDiv.classList.remove('show');
+      spDiv.classList.remove('manual-edit');
+      dpDiv.classList.remove('manual-edit');
+    }
+    updateFormulaDisplay();
+  }
+
+  function calculateFromNRV() {
     const NRV = parseFloat(document.getElementById('nrv').value) || 0;
     const BA_Commission = parseFloat(document.getElementById('baCommission').value) || 0;
     const Tax_Class = parseFloat(document.getElementById('taxClass').value) || 0;
     const GST_Commission_Rate = parseFloat(document.getElementById('gstOnCommission').value) || 0;
     const TCS_Rate = parseFloat(document.getElementById('tcsRate').value) || 0;
+
+    if (NRV <= 0) return;
+
+    // Validate before calculation
+    if (!validatePrices()) return;
+
+    // S.P. = NRV × ((100+BA_Commission)/100) × ((100+GST_Commission)/100)
+    const sellerPrice = NRV * ((100 + BA_Commission)/100) * ((100 + GST_Commission_Rate)/100);
     
-    // Calculate Seller Price (S.P.) - IMPROVED FORMULA
-    // S.P. = NRV × (1 + BA Commission/100) * (1 + GST on Commission/100)
-    const sellerPrice = NRV * (1 + BA_Commission / 100) * (1 + GST_Commission_Rate / 100);
+    // D.P. = S.P. × ((100+Tax_Class)/100)
+    const displayPrice = sellerPrice * ((100 + Tax_Class)/100);
     
-    // Calculate Display Price (D.P.)
-    const displayPrice = sellerPrice * (1 + Tax_Class / 100);
-    
-    // Calculate B.A Commission Amount (based on NRV)
+    // B.A Commission remains the same: NRV × (BA_Commission/100)
     const commissionAmount = NRV * (BA_Commission / 100);
-    
-    // Calculate GST on Commission
     const gstOnCommission = commissionAmount * (GST_Commission_Rate / 100);
-    
-    // Calculate Total Commission + GST
-    const totalCommissionGST = commissionAmount + gstOnCommission;
-    
-    // Calculate TCS (based on seller price)
     const tcsAmount = sellerPrice * (TCS_Rate / 100);
-    
-    // Calculate Bank Settlement Amount (BSA)
-    const bankSettlement = NRV - tcsAmount;
-    
-    // Display results
-    document.getElementById('sellerPrice').textContent = formatRupees(sellerPrice);
-    document.getElementById('displayPrice').textContent = formatRupees(displayPrice);
+    const bankSettlement = NRV; // BSA = NRV
+
+    // Update price fields
+    isUpdatingPrices = true;
+    document.getElementById('sellerPrice').value = sellerPrice.toFixed(2);
+    document.getElementById('displayPrice').value = displayPrice.toFixed(2);
+    isUpdatingPrices = false;
+
+    // Update result displays
     document.getElementById('commissionAmount').textContent = formatRupees(commissionAmount);
     document.getElementById('gstCommission').textContent = formatRupees(gstOnCommission);
-    document.getElementById('totalCommissionGST').textContent = formatRupees(totalCommissionGST);
     document.getElementById('tcsAmount').textContent = formatRupees(tcsAmount);
     document.getElementById('bankSettlement').textContent = formatRupees(bankSettlement);
+
+    isManualEdit = false;
+    showManualEditAlert();
+    validatePrices(); // Validate after calculation
   }
-  // Add event listeners on inputs to update calculations live
-  const inputs = document.querySelectorAll('input[type="number"]');
-  inputs.forEach(input => input.addEventListener('input', calculatePricing));
-  // Initial calculation on page load
-  calculatePricing();
+
+  function updateDisplayPrice() {
+    if (isUpdatingPrices) return;
+    
+    const sellerPrice = parseFloat(document.getElementById('sellerPrice').value) || 0;
+    const Tax_Class = parseFloat(document.getElementById('taxClass').value) || 0;
+    
+    if (sellerPrice > 0) {
+      // Validate seller price first
+      if (!validatePrices()) return;
+      
+      // D.P. = S.P. × (1 + Tax_Class/100)
+      const displayPrice = sellerPrice * (1 + Tax_Class / 100);
+      isUpdatingPrices = true;
+      document.getElementById('displayPrice').value = displayPrice.toFixed(2);
+      isUpdatingPrices = false;
+      
+      isManualEdit = true;
+      showManualEditAlert();
+      calculateFromManualPrices();
+    }
+  }
+
+  function updateSellerPrice() {
+    if (isUpdatingPrices) return;
+    
+    const displayPrice = parseFloat(document.getElementById('displayPrice').value) || 0;
+    const Tax_Class = parseFloat(document.getElementById('taxClass').value) || 0;
+    
+    if (displayPrice > 0) {
+      // S.P. = D.P. × 100/(100+Tax_Class)
+      const sellerPrice = displayPrice * 100 / (100 + Tax_Class);
+      isUpdatingPrices = true;
+      document.getElementById('sellerPrice').value = sellerPrice.toFixed(2);
+      isUpdatingPrices = false;
+      
+      isManualEdit = true;
+      showManualEditAlert();
+      calculateFromManualPrices();
+      validatePrices(); // Validate after calculation
+    }
+  }
+
+  function calculateFromManualPrices() {
+    const NRV = parseFloat(document.getElementById('nrv').value) || 0;
+    const sellerPrice = parseFloat(document.getElementById('sellerPrice').value) || 0;
+    const BA_Commission = parseFloat(document.getElementById('baCommission').value) || 0;
+    const GST_Commission_Rate = parseFloat(document.getElementById('gstOnCommission').value) || 0;
+    const TCS_Rate = parseFloat(document.getElementById('tcsRate').value) || 0;
+
+    if (sellerPrice > 0 && NRV > 0) {
+      // B.A Commission ALWAYS calculated from original NRV: NRV × (BA_Commission/100)
+      const commissionAmount = NRV * (BA_Commission / 100);
+      const gstOnCommission = commissionAmount * (GST_Commission_Rate / 100);
+      const tcsAmount = sellerPrice * (TCS_Rate / 100);
+      const bankSettlement = NRV; // BSA = NRV
+
+      // Update result displays
+      document.getElementById('commissionAmount').textContent = formatRupees(commissionAmount);
+      document.getElementById('gstCommission').textContent = formatRupees(gstOnCommission);
+      document.getElementById('tcsAmount').textContent = formatRupees(tcsAmount);
+      document.getElementById('bankSettlement').textContent = formatRupees(bankSettlement);
+    }
+  }
+
+  // Event listeners for MRP and MSP
+  document.getElementById('mrp').addEventListener('input', function() {
+    updatePriceRange();
+    validatePrices();
+  });
+  
+  document.getElementById('msp').addEventListener('input', function() {
+    updatePriceRange();
+    validatePrices();
+  });
+
+  // Event listeners for NRV and rate changes
+  document.getElementById('nrv').addEventListener('input', function() {
+    validatePrices();
+    if (!isManualEdit) {
+      calculateFromNRV();
+    } else {
+      calculateFromManualPrices();
+    }
+  });
+  
+  document.getElementById('baCommission').addEventListener('input', function() {
+    if (!isManualEdit) calculateFromNRV();
+    else calculateFromManualPrices();
+  });
+  
+  document.getElementById('taxClass').addEventListener('input', function() {
+    if (!isManualEdit) {
+      calculateFromNRV();
+    } else {
+      const spValue = parseFloat(document.getElementById('sellerPrice').value);
+      const dpValue = parseFloat(document.getElementById('displayPrice').value);
+      
+      if (spValue > 0) {
+        updateDisplayPrice();
+      } else if (dpValue > 0) {
+        updateSellerPrice();
+      }
+    }
+  });
+  
+  document.getElementById('gstOnCommission').addEventListener('input', function() {
+    if (!isManualEdit) calculateFromNRV();
+    else calculateFromManualPrices();
+  });
+  
+  document.getElementById('tcsRate').addEventListener('input', function() {
+    if (!isManualEdit) calculateFromNRV();
+    else calculateFromManualPrices();
+  });
+
+  // Event listeners for price changes
+  document.getElementById('sellerPrice').addEventListener('input', function() {
+    validatePrices();
+    updateDisplayPrice();
+  });
+  
+  document.getElementById('displayPrice').addEventListener('input', function() {
+    updateSellerPrice();
+  });
+
+  // Initial setup
+  updatePriceRange();
 </script>
+
 </body>
 </html>
