@@ -151,6 +151,15 @@
     color: #1565c0;
     border-left: 4px solid #2196f3;
   }
+  .rounding-note {
+    background: #fff3cd;
+    color: #856404;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-size: 11px;
+    border: 1px solid #ffeaa7;
+  }
   footer {
     text-align: center;
     margin-top: 30px;
@@ -197,11 +206,11 @@
     </div>
     
     <label for="nrv">Net Receivable Amount (NRV) ₹</label>
-    <input type="number" id="nrv" min="0" step="0.01" value="" placeholder="Enter NRV within range" />
+    <input type="number" id="nrv" min="0" step="0.01" value="100" placeholder="Enter NRV within range" />
     <div class="validation-error" id="nrvError"></div>
 
     <label for="baCommission">B.A Commission (%)</label>
-    <input type="number" id="baCommission" min="0" step="0.01" value="10" />
+    <input type="number" id="baCommission" min="0" step="0.01" value="28" />
 
     <label for="taxClass">GST Tax Class (%)</label>
     <input type="number" id="taxClass" min="0" step="0.01" value="5" />
@@ -218,7 +227,11 @@
     <div class="section-title">Calculated Results</div>
     
     <div class="formula-display" id="formulaDisplay">
-      Formula: S.P. = NRV × ((100+BA)/100) × ((100+GST)/100)
+      Formula: S.P. = NRV + (NRV × BA/100) + (BA_Amount × GST/100)
+    </div>
+    
+    <div class="rounding-note">
+      📌 SP & DP Rounding: If decimal < 0.50, round down | If decimal ≥ 0.50, round up
     </div>
     
     <div class="alert" id="manualEditAlert">
@@ -260,6 +273,18 @@
 <script>
   let isManualEdit = false;
   let isUpdatingPrices = false;
+
+  // Custom rounding function: If decimal < 0.50, round down | If decimal >= 0.50, round up
+  function customRound(value) {
+    const integerPart = Math.floor(value);
+    const decimalPart = value - integerPart;
+    
+    if (decimalPart < 0.50) {
+      return integerPart;
+    } else {
+      return integerPart + 1;
+    }
+  }
 
   // Function to format number as currency rupees string
   function formatRupees(amount) {
@@ -356,7 +381,7 @@
     if (isManualEdit) {
       formulaDiv.textContent = "Formula: Manual Edit Mode - D.P. = S.P. × (1 + Tax_Class/100)";
     } else {
-      formulaDiv.textContent = "Formula: S.P. = NRV × ((100+BA)/100) × ((100+GST)/100)";
+      formulaDiv.textContent = "Formula: S.P. = NRV + (NRV × BA/100) + (BA_Amount × GST/100)";
     }
   }
 
@@ -389,19 +414,24 @@
     // Validate before calculation
     if (!validatePrices()) return;
 
-    // S.P. = NRV × ((100+BA_Commission)/100) × ((100+GST_Commission)/100)
-    const sellerPrice = NRV * ((100 + BA_Commission)/100) * ((100 + GST_Commission_Rate)/100);
-    
-    // D.P. = S.P. × ((100+Tax_Class)/100)
-    const displayPrice = sellerPrice * ((100 + Tax_Class)/100);
-    
-    // B.A Commission remains the same: NRV × (BA_Commission/100)
+    // NEW FORMULA: S.P. = NRV + (NRV × BA_Commission/100) + (BA_Commission_Amount × GST_Commission/100)
     const commissionAmount = NRV * (BA_Commission / 100);
     const gstOnCommission = commissionAmount * (GST_Commission_Rate / 100);
+    const sellerPriceRaw = NRV + commissionAmount + gstOnCommission;
+    
+    // Apply custom rounding to Seller Price
+    const sellerPrice = customRound(sellerPriceRaw);
+    
+    // D.P. = S.P. × (1 + Tax_Class/100)
+    const displayPriceRaw = sellerPrice * (1 + Tax_Class / 100);
+    
+    // Apply custom rounding to Display Price
+    const displayPrice = customRound(displayPriceRaw);
+    
     const tcsAmount = sellerPrice * (TCS_Rate / 100);
     const bankSettlement = NRV; // BSA = NRV
 
-    // Update price fields
+    // Update price fields with rounded values
     isUpdatingPrices = true;
     document.getElementById('sellerPrice').value = sellerPrice.toFixed(2);
     document.getElementById('displayPrice').value = displayPrice.toFixed(2);
@@ -429,7 +459,11 @@
       if (!validatePrices()) return;
       
       // D.P. = S.P. × (1 + Tax_Class/100)
-      const displayPrice = sellerPrice * (1 + Tax_Class / 100);
+      const displayPriceRaw = sellerPrice * (1 + Tax_Class / 100);
+      
+      // Apply custom rounding to Display Price
+      const displayPrice = customRound(displayPriceRaw);
+      
       isUpdatingPrices = true;
       document.getElementById('displayPrice').value = displayPrice.toFixed(2);
       isUpdatingPrices = false;
@@ -448,7 +482,11 @@
     
     if (displayPrice > 0) {
       // S.P. = D.P. × 100/(100+Tax_Class)
-      const sellerPrice = displayPrice * 100 / (100 + Tax_Class);
+      const sellerPriceRaw = displayPrice * 100 / (100 + Tax_Class);
+      
+      // Apply custom rounding to Seller Price
+      const sellerPrice = customRound(sellerPriceRaw);
+      
       isUpdatingPrices = true;
       document.getElementById('sellerPrice').value = sellerPrice.toFixed(2);
       isUpdatingPrices = false;
@@ -543,8 +581,9 @@
     updateSellerPrice();
   });
 
-  // Initial setup
+  // Initial setup and calculation on load
   updatePriceRange();
+  calculateFromNRV(); // This will calculate with default values: NRV=100, BA=28%, GST=18%
 </script>
 
 </body>
